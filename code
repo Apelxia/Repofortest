@@ -1,24 +1,24 @@
-architecture behavioural of debounce is
-  -- Local signal to store previous two samples
-  signal samples: std_logic_vector(1 downto 0) := "00";
 begin
   tr: process(clk) -- clocked transition process
   begin
     if rising_edge(clk) then
       if clk_en = '1' then
         -- Logic to store previous (2) samples
-        samples <= button & samples(0);
+        S2 <= S1;
+        S1 <= button;
 
         -- Logic to set outputs as necessary
-        if samples = "000" then
-          debounced <= '0';
-        elsif samples = "111" then
-          debounced <= '1';
+        if S2 = '0' and S1 = '0' and button = '0' then
+          debounced_j <= '0';
+        elsif S2 = '1' and S1 = '1' and button = '1' then
+          debounced_j <= '1';
         end if;
 
         -- Generate down_event pulse for one system clock pulse duration if the output changes from 0 to 1
-        down_event <= '1' when (samples = "001" or samples = "011") and debounced = '1' else '0';
+        down_event <= '1' when (S2 = '0' and S1 = '1' and debounced_j = '1') else '0';
       end if;
     end if;
   end process;
-end behavioral;
+  
+  -- Assign the debounced output
+  debounced <= debounced_j;
