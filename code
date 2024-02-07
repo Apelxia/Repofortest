@@ -11,3 +11,7 @@
     end if;
   end process SYNC_PROC;
 end rtl;
+S220069582@13025PodB:~/Digital Design/ee2did-coursework-2023-Apelxia$ make counter.check
+ghdl -a --std=08 --workdir=tmp/ counter.vhd
+counter.vhd:31:41:error: unexpected token '=' in a primary
+counter.vhd:35:5:error: 'begin' not allowed within statements
