@@ -1,24 +1,13 @@
 begin
-  tr: process(clk) -- clocked transition process
-  begin
-    if rising_edge(clk) then
-      if clk_en = '1' then
-        -- Logic to store previous (2) samples
-        S2 <= S1;
-        S1 <= button;
-
-        -- Logic to set outputs as necessary
-        if S2 = '0' and S1 = '0' and button = '0' then
-          debounced_j <= '0';
-        elsif S2 = '1' and S1 = '1' and button = '1' then
-          debounced_j <= '1';
-        end if;
-
-        -- Generate down_event pulse for one system clock pulse duration if the output changes from 0 to 1
-        down_event <= '1' when (S2 = '0' and S1 = '1' and debounced_j = '1') else '0';
+  if reset = '1' then
+    count_i <= ustart;  -- Reset the counter to the starting value
+  elsif rising_edge(clk) then
+    if ce = '1' then  -- Check if count enable signal is active
+      if count_i = ufinish then
+        count_i <= ustart;  -- Wrap around to start if terminal count is reached
+      else
+        count_i <= count_i + 1;  -- Increment the counter
       end if;
     end if;
-  end process;
-  
-  -- Assign the debounced output
-  debounced <= debounced_j;
+  end if;
+end process;
