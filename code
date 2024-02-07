@@ -1,13 +1,13 @@
-begin
-  if reset = '1' then
-    count_i <= ustart;  -- Reset the counter to the starting value
-  elsif rising_edge(clk) then
-    if ce = '1' then  -- Check if count enable signal is active
+ SYNC_PROC: process(clk, reset)
+  begin
+    if reset = '1' then
+      count_i <= ustart;  -- Reset counter to start value
+    elsif rising_edge(clk) then
       if count_i = ufinish then
-        count_i <= ustart;  -- Wrap around to start if terminal count is reached
+        count_i <= ustart;  -- Wrap around from finish to start
       else
-        count_i <= count_i + 1;  -- Increment the counter
+        count_i <= count_i + 1;  -- Increment counter
       end if;
     end if;
-  end if;
-end process;
+  end process SYNC_PROC;
+end rtl;
