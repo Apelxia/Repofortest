@@ -1,17 +1,95 @@
- SYNC_PROC: process(clk, reset)
-  begin
-    if reset = '1' then
-      count_i <= ustart;  -- Reset counter to start value
-    elsif rising_edge(clk) then
-      if count_i = ufinish then
-        count_i <= ustart;  -- Wrap around from finish to start
-      else
-        count_i <= count_i + 1;  -- Increment counter
-      end if;
-    end if;
-  end process SYNC_PROC;
-end rtl;
-S220069582@13025PodB:~/Digital Design/ee2did-coursework-2023-Apelxia$ make counter.check
-ghdl -a --std=08 --workdir=tmp/ counter.vhd
-counter.vhd:31:41:error: unexpected token '=' in a primary
-counter.vhd:35:5:error: 'begin' not allowed within statements
+architecture structural of fourcounter is
+  -- Component declarations
+  component clk_prescaler is
+    generic (
+      n: integer
+    );
+    port (
+      clk: in std_logic;
+      clk_div: out std_logic
+    );
+  end component;
+
+  component debounce is
+    port (
+      clk: in std_logic;
+      clk_en: in std_logic;
+      button: in std_logic;
+      debounced: out std_logic;
+      down_event: out std_logic
+    );
+  end component;
+
+  component counter is
+    generic (
+      start: integer := 0;
+      finish: integer := 9;
+      nbits: integer := 4
+    );
+    port (
+      clk: in std_logic;
+      ce: in std_logic;
+      reset: in std_logic;
+      count: out unsigned(nbits - 1 downto 0);
+      tc: out std_logic := '0'
+    );
+  end component;
+
+  -- Internal signals
+  signal clk_2Hz : std_logic;  -- Internal 2Hz clock
+  signal clk_1kHz : std_logic; -- Internal 1kHz clock
+  signal button_debounced : std_logic_vector(3 downto 0); -- Debounced button signals
+  signal ce_counters : std_logic_vector(3 downto 0); -- Clock enable signals for counters
+  signal tc_counters : std_logic_vector(3 downto 0); -- Terminal count signals for counters
+
+begin
+  -- Instantiate clk_prescaler components
+  prescaler_2Hz: clk_prescaler
+    generic map (
+      n => 1000000  -- For a 50MHz system clock, 50MHz / 1000000 = 50Hz (2Hz)
+    )
+    port map (
+      clk => clk,
+      clk_div => clk_2Hz
+    );
+
+  prescaler_1kHz: clk_prescaler
+    generic map (
+      n => 50000  -- For a 50MHz system clock, 50MHz / 50000 = 1kHz
+    )
+    port map (
+      clk => clk,
+      clk_div => clk_1kHz
+    );
+
+  -- Instantiate debounce components (for 4 buttons)
+  debounce_button0: debounce
+    port map (
+      clk => clk,
+      clk_en => clk_1kHz,
+      button => button(0),
+      debounced => button_debounced(0),
+      down_event => open  -- You need to decide how to handle this
+    );
+
+  -- Instantiate counter components
+  for i in 0 to 3 generate
+    counter_inst: counter
+      generic map (
+        start => 0,  -- Define start and finish values for each counter if needed
+        finish => 9,
+        nbits => 4
+      )
+      port map (
+        clk => clk_2Hz,  -- Connect to 2Hz clock
+        ce => ce_counters(i),  -- Connect to clock enable signals
+        reset => '0',  -- You may need to modify this based on your design
+        count => open,  -- You need to decide how to handle this
+        tc => tc_counters(i)  -- Connect to terminal count signals
+      );
+  end generate;
+
+  -- Connect the counter tc and ce signals between counters using appropriate Boolean logic expressions.
+  -- You need to implement this part based on your design requirements.
+
+end structural;
