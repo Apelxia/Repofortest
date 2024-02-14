@@ -1,95 +1,109 @@
+library IEEE;
+use IEEE.std_logic_1164.all;
+use IEEE.numeric_std.all;
+
+entity fourcounter is
+    port (
+        clk: in std_logic;
+        sw: in std_logic_vector(15 downto 0);
+        led: out std_logic_vector(15 downto 0)
+    );
+end entity fourcounter;
+
 architecture structural of fourcounter is
-  -- Component declarations
-  component clk_prescaler is
-    generic (
-      n: integer
-    );
-    port (
-      clk: in std_logic;
-      clk_div: out std_logic
-    );
-  end component;
+    -- Component Declarations
+    component clk_prescaler is
+        generic (
+            n: integer := 25000000  -- 100MHz / 25000000 = 4Hz (2 second period)
+        );
+        port (
+            clk: in std_logic;
+            clk_div: out std_logic
+        );
+    end component;
 
-  component debounce is
-    port (
-      clk: in std_logic;
-      clk_en: in std_logic;
-      button: in std_logic;
-      debounced: out std_logic;
-      down_event: out std_logic
-    );
-  end component;
+    component debounce is
+        port (
+            clk: in std_logic;
+            clk_en: in std_logic;
+            button: in std_logic;
+            debounced: out std_logic;
+            down_event: out std_logic
+        );
+    end component;
 
-  component counter is
-    generic (
-      start: integer := 0;
-      finish: integer := 9;
-      nbits: integer := 4
-    );
-    port (
-      clk: in std_logic;
-      ce: in std_logic;
-      reset: in std_logic;
-      count: out unsigned(nbits - 1 downto 0);
-      tc: out std_logic := '0'
-    );
-  end component;
+    component counter is
+        generic (
+            start: integer := 0;
+            finish: integer := 9;
+            nbits: integer := 4
+        );
+        port (
+            clk: in std_logic;
+            ce: in std_logic;
+            reset: in std_logic;
+            count: out unsigned(nbits-1 downto 0);
+            tc: out std_logic
+        );
+    end component;
 
-  -- Internal signals
-  signal clk_2Hz : std_logic;  -- Internal 2Hz clock
-  signal clk_1kHz : std_logic; -- Internal 1kHz clock
-  signal button_debounced : std_logic_vector(3 downto 0); -- Debounced button signals
-  signal ce_counters : std_logic_vector(3 downto 0); -- Clock enable signals for counters
-  signal tc_counters : std_logic_vector(3 downto 0); -- Terminal count signals for counters
+    -- Internal Signals
+    signal clk_2Hz, clk_1kHz: std_logic;
+    signal debounced_buttons: std_logic_vector(15 downto 0);
+    signal counters_tc: std_logic_vector(3 downto 0);
+    signal counters_ce: std_logic_vector(3 downto 0);
 
 begin
-  -- Instantiate clk_prescaler components
-  prescaler_2Hz: clk_prescaler
-    generic map (
-      n => 1000000  -- For a 50MHz system clock, 50MHz / 1000000 = 50Hz (2Hz)
-    )
-    port map (
-      clk => clk,
-      clk_div => clk_2Hz
-    );
+    -- Instantiate clock prescalers
+    prescaler_2Hz: clk_prescaler
+        generic map (n => 25000000)  -- 100MHz / 25000000 = 4Hz
+        port map (clk => clk, clk_div => clk_2Hz);
+    
+    prescaler_1kHz: clk_prescaler
+        generic map (n => 100000)  -- 100MHz / 100000 = 1kHz
+        port map (clk => clk, clk_div => clk_1kHz);
 
-  prescaler_1kHz: clk_prescaler
-    generic map (
-      n => 50000  -- For a 50MHz system clock, 50MHz / 50000 = 1kHz
-    )
-    port map (
-      clk => clk,
-      clk_div => clk_1kHz
-    );
+    -- Instantiate debounce circuits for each switch
+    debounce_inst: for i in 0 to 15 generate
+        debounce_i: debounce
+            port map (
+                clk => clk,
+                clk_en => clk_1kHz,
+                button => sw(i),
+                debounced => debounced_buttons(i),
+                down_event => counters_ce(i)
+            );
+    end generate debounce_inst;
 
-  -- Instantiate debounce components (for 4 buttons)
-  debounce_button0: debounce
-    port map (
-      clk => clk,
-      clk_en => clk_1kHz,
-      button => button(0),
-      debounced => button_debounced(0),
-      down_event => open  -- You need to decide how to handle this
-    );
+    -- Instantiate counters
+    counter_inst: for i in 0 to 3 generate
+        counter_i: counter
+            generic map (
+                start => 0,
+                finish => 9,
+                nbits => 4
+            )
+            port map (
+                clk => clk,
+                ce => counters_ce(i),
+                reset => '0',
+                count => open,
+                tc => counters_tc(i)
+            );
+    end generate counter_inst;
 
-  -- Instantiate counter components
-  for i in 0 to 3 generate
-    counter_inst: counter
-      generic map (
-        start => 0,  -- Define start and finish values for each counter if needed
-        finish => 9,
-        nbits => 4
-      )
-      port map (
-        clk => clk_2Hz,  -- Connect to 2Hz clock
-        ce => ce_counters(i),  -- Connect to clock enable signals
-        reset => '0',  -- You may need to modify this based on your design
-        count => open,  -- You need to decide how to handle this
-        tc => tc_counters(i)  -- Connect to terminal count signals
-      );
-  end generate;
+    -- Connect counter tc and ce signals between counters
+    counters_tc(0) <= counters_tc(3);
+    counters_tc(1) <= counters_tc(0);
+    counters_tc(2) <= counters_tc(1);
+    counters_tc(3) <= counters_tc(2);
 
-  -- Connect the counter tc and ce signals between counters using appropriate Boolean logic expressions.
-  -- You need to implement this part based on your design requirements.
+    counters_ce(0) <= counters_tc(0);
+    counters_ce(1) <= counters_tc(1);
+    counters_ce(2) <= counters_tc(2);
+    counters_ce(3) <= counters_tc(3);
 
-end structural;
+    -- Connect counters to LEDs
+    led <= counters_tc;
+
+end architecture structural;
