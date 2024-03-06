@@ -1,31 +1,26 @@
-mux_proc: process(clk)
-begin
-  if rising_edge(clk) and clk_en = '1' then
-    -- Increment the digit index
-    digit_index <= digit_index + 1;
-    
-    -- Reset digit index if it exceeds the maximum digit count
-    if digit_index >= MAX_DIGITS then
-      digit_index <= 0;
+  -- multiplexing process scan across anodes and digits
+  mux_proc: process(clk)
+  begin
+    if rising_edge(clk) and clk_en='1' then
+      -- Increment the digit index
+      digit_index <= digit_index + 1;
+      
+      -- Reset digit index if it exceeds the maximum digit count
+      if digit_index >= MAX_DIGITS then
+        digit_index <= 0;
+      end if;
+      
+      -- Set the anode signals
+      for i in 0 to MAX_DIGITS-1 loop
+        anodes_i(i) <= '1' when i = digit_index else '0';
+      end loop;
+      
+      -- Set the digit signal to be displayed
+      digit <= bcd(4*digit_index + 3 downto 4*digit_index);
+      
+      -- Enable decimal point if necessary
+      dp <= dp_on(digit_index);
     end if;
-    
-    -- Set the anode signals
-    for i in 0 to MAX_DIGITS-1 loop
-      anodes(i) <= '1' when i = digit_index else '0';
-    end loop;
-    
-    -- Set the digit signals to be displayed based on the BCD input
-    case bcd_input is
-      when "0000" => segments <= "1000000"; -- Digit 0
-      -- Add cases for other digits as needed
-      when others => segments <= "1111111"; -- All segments off if BCD input is invalid
-    end case;
-    
-    -- Set the decimal point signal if necessary
-    -- Example: decimal_point <= '1' when some_condition else '0';
-  end if;
-end process mux_proc;
-
-  signal digit_index: integer range 0 to 3 := 0;  -- Digit index signal
+  end process mux_proc;
   
-  constant MAX_DIGITS: integer := 4;  -- Maximum number of digits
+end behavioral;
