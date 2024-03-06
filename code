@@ -25,3 +25,7 @@ begin
     -- Example: decimal_point <= '1' when some_condition else '0';
   end if;
 end process mux_proc;
+
+  signal digit_index: integer range 0 to 3 := 0;  -- Digit index signal
+  
+  constant MAX_DIGITS: integer := 4;  -- Maximum number of digits
