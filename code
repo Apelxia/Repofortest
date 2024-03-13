@@ -8,3 +8,35 @@
       if coindrop = '1' then
         next_state <= can_drop;
       end if;
+
+NEXT_STATE_DECODE: process (state, coindrop, candrop, over, under, newcoin)
+begin
+  -- Default next state assignment
+  next_state <= state;
+
+  -- Case statement checking current state and inputs to determine next state
+  case state is
+    when start =>
+      if newcoin = '1' then
+        next_state <= coin_insert;
+      end if;
+    when coin_insert =>
+      next_state <= start_acc;
+    when start_acc =>
+      -- Conditions for transition to different states
+      if under = '1' then
+        next_state <= start;
+      elsif over = '1' then
+        next_state <= coin_drop;
+      elsif coindrop = '1' then
+        next_state <= change_collect;
+      elsif candrop = '1' then
+        next_state <= can_drop;
+      end if;
+    when can_drop =>
+      next_state <= collect_can;
+    -- Add more transitions for other states as needed
+    when others =>
+      next_state <= start; -- Default catch-all to go to a safe state
+  end case;
+end process NEXT_STATE_DECODE;
