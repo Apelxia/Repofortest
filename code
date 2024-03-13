@@ -1,23 +1,10 @@
--- multiplexing process scan across anodes and digits
-mux_proc: process(clk)
-begin
-  if rising_edge(clk) and clk_en = '1' then
-    -- Perform cyclic shift on anodes_i
-    anodes_i <= anodes_i(2 downto 0) & anodes_i(3);
-
-    -- Select the next set of digit bits from the BCD input signal
-    -- based on the digit_index
-    digit <= bcd(4 * digit_index + 3 downto 4 * digit_index);
-
-    -- Set the decimal point value
-    dp <= dp_on(digit_index);
-
-    -- Increment the digit_index
-    digit_index <= digit_index + 1;
-
-    -- Reset digit_index if it exceeds the maximum digit count
-    if digit_index >= MAX_DIGITS then
-      digit_index <= 0;
-    end if;
-  end if;
-end process mux_proc;
+  if state = start then
+      if newcoin = '1' then
+        next_state <= coin_insert;
+      elsif x = '1' then
+        next_state <= start_acc;
+      end if;
+    elsif state = coin_insert then
+      if coindrop = '1' then
+        next_state <= can_drop;
+      end if;
